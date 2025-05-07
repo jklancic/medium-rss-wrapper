@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const xml2js = require('xml2js');
@@ -6,16 +7,16 @@ const cors = require('cors');
 
 // setup express service
 const app = express();
-const allowedOrigins = ['http://localhost:4200', 'https://klancic.me'];
+const allowedOrigins = process.env.ALLOWED_ORIGIN || '*'
 // Use the cors middleware
 app.use(cors({
     origin: allowedOrigins,
-    methods: ['GET', 'POST']
+    methods: ['GET']
 }));
 // Use the port provided by the host or default to 3000
 const port = process.env.PORT || 3000;
 // Cache items for 15 minutes (900 seconds)
-const cache = new NodeCache({ stdTTL: 900 });
+const cache = new NodeCache({ stdTTL: process.env.API_CACHE_TTL || 1800 });
 
 app.listen(port, () => {
     logMessage(`Server listening on port ${port}`);
@@ -26,7 +27,7 @@ const fetchFeed = async (feedUrl) => {
     try {
         const response = await axios.get(feedUrl, {
             headers: {
-                'User-Agent': 'medium-rss-wrapper/1.0 (klancic.me; klancic@hotmail.com)' // Example User-Agent string
+                'User-Agent': process.env.USER_AGENT // Example User-Agent string
             }
         });
         const parsedFeed = await xml2js.parseStringPromise(response.data, { mergeAttrs: true });
@@ -54,7 +55,7 @@ app.get('/api/feed/:name', async (req, res) => {
     // Default to 5 items if 'size' is not specified
     const size = parseInt(req.query.size) || 5;
 
-    const feedUrl = `https://medium.com/feed/@${mediumName}`;
+    const feedUrl = `${process.env.MEDIUM_BASE_URL}/feed/@${mediumName}`;
     logMessage(`Fetching feeds: [${mediumName}, ${feedUrl}]`);
 
     const cacheKey = `${mediumName}:${size}`;

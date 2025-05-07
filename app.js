@@ -2,16 +2,23 @@ const express = require('express');
 const axios = require('axios');
 const xml2js = require('xml2js');
 const NodeCache = require('node-cache');
+const cors = require('cors');
 
 // setup express service
 const app = express();
+const allowedOrigins = ['http://localhost:4200', 'https://klancic.me'];
+// Use the cors middleware
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST']
+}));
 // Use the port provided by the host or default to 3000
 const port = process.env.PORT || 3000;
 // Cache items for 15 minutes (900 seconds)
 const cache = new NodeCache({ stdTTL: 900 });
 
 app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+    logMessage(`Server listening on port ${port}`);
 });
 
 // Utility function to fetch and parse the RSS feed
@@ -26,10 +33,20 @@ const fetchFeed = async (feedUrl) => {
         const items = parsedFeed.rss.channel[0].item || [];
         return items;
     } catch (error) {
-        console.error(`Error fetching feed: ${error}`);
+        logError(`Error fetching feed: ${error}`);
         throw error;
     }
 };
+
+const logMessage = (message) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${message}`);
+};
+
+const logError = (error) => {
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] ${error}`);
+}
 
 // Retrieve feeds for user
 app.get('/api/feed/:name', async (req, res) => {
@@ -38,13 +55,13 @@ app.get('/api/feed/:name', async (req, res) => {
     const size = parseInt(req.query.size) || 5;
 
     const feedUrl = `https://medium.com/feed/@${mediumName}`;
-    console.log(`Fetching feeds: [${mediumName}, ${feedUrl}]`);
+    logMessage(`Fetching feeds: [${mediumName}, ${feedUrl}]`);
 
     const cacheKey = `${mediumName}:${size}`;
     const cachedData = cache.get(cacheKey);
 
     if (cachedData) {
-        console.log('Serving from cache');
+        logMessage('Serving from cache');
         return res.json(cachedData);
     }
 
@@ -64,6 +81,7 @@ app.get('/api/feed/:name', async (req, res) => {
 
         res.json(limitedItems); // Send the formatted items as JSON response
     } catch (error) {
+        logError(`Error processing feed: ${error}`);
         res.status(500).json({ error: 'Failed to fetch or parse RSS feed' });
     }
 });

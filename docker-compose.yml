@@ -1,0 +1,17 @@
+services:
+  medium-rss-wrapper:
+    image: ghcr.io/jklancic/medium-rss-wrapper:latest
+    build: .
+    container_name: medium-rss-wrapper
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

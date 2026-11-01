@@ -6,8 +6,10 @@ services:
     restart: unless-stopped
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
+    # Loopback only: the host Nginx proxies to it. A public binding would skip
+    # the firewall, since Docker writes its own iptables rules.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env
     healthcheck:
